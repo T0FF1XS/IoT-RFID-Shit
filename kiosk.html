@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TagIt! Canteen Kiosk</title>
+  <link rel="stylesheet" href="kiosk.css">
+</head>
+<body>
+  <header class="k-topbar">
+    <h1>🍔 TagIt! <span>Canteen Kiosk</span></h1>
+    <div id="kStatus" class="k-status offline">Connecting...</div>
+  </header>
+
+  <div class="k-layout">
+    <aside class="k-side">
+      <section id="kStage" class="k-stage idle">
+        <div id="kIcon" class="k-icon">💳</div>
+        <p id="kTitle" class="k-title">WELCOME!</p>
+        <p id="kSub" class="k-sub">Pick your items, then tap your card to pay</p>
+      </section>
+
+      <section class="k-cartpanel">
+        <h2>Your Order</h2>
+        <div id="kCartList" class="k-cartlist"><p class="k-empty">Nothing added yet</p></div>
+        <div class="k-total"><span>Total</span><strong id="kTotal">0 pts</strong></div>
+        <button id="kCheckout" class="k-checkout">Place Order</button>
+        <button id="kClear" class="k-clear">Cancel</button>
+      </section>
+    </aside>
+
+    <section class="k-main">
+      <div id="kCats" class="k-cats"></div>
+      <div id="kMenu" class="k-menu"></div>
+    </section>
+  </div>
+
+  <script src="kiosk.js"></script>
+</body>
+</html>

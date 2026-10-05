@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TagIt! RFID Kiosk Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>TagIt!<span>Tap. Scan. Done.</span></h1>
+    <div id="status" class="status offline">Connecting...</div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div class="card stat"><p>Total Taps</p><strong id="statTotal">0</strong></div>
+      <div class="card stat ok"><p>Granted</p><strong id="statGranted">0</strong></div>
+      <div class="card stat bad"><p>Denied</p><strong id="statDenied">0</strong></div>
+      <div class="card stat"><p>Registered Cards</p><strong id="statUsers">0</strong></div>
+    </section>
+
+    <section class="grid">
+      <div class="card last" id="lastTap">
+        <h2>Last Tap</h2>
+        <div class="icon idle" id="lastIcon">?</div>
+        <p class="who" id="lastName">Waiting for a card...</p>
+        <p class="meta" id="lastMeta">Tap a card on the kiosk</p>
+      </div>
+
+      <div class="card">
+        <h2>Register a Card</h2>
+        <form id="userForm">
+          <label for="uid">Card UID (HEX)</label>
+          <input id="uid" placeholder="e.g. A1B2C3D4" maxlength="20" required>
+          <label for="name">Name</label>
+          <input id="name" placeholder="e.g. Juan Dela Cruz" maxlength="40" required>
+          <button type="submit">Add Card</button>
+          <p id="formMsg" class="msg"></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Live Access Log <button id="clearLogs" style="float:right;font-size:.75rem;padding:4px 10px;background:#6b7280">Clear</button></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Time</th><th>Name</th><th>UID</th><th>Result</th><th></th></tr></thead>
+          <tbody id="logBody"><tr><td colspan="5" class="empty">No taps yet</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Registered Cards</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Name</th><th>UID</th><th>Balance</th><th>Added</th><th></th></tr></thead>
+          <tbody id="userBody"><tr><td colspan="5" class="empty">No cards registered</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
