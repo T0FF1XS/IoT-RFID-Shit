@@ -1,48 +1,69 @@
 <?php
-// Shared database + helper functions (SQLite, no setup needed)
+// Shared MySQL connection + schema (create the database in phpMyAdmin first).
 date_default_timezone_set('Asia/Manila');
 
 function db(): PDO {
     static $pdo = null;
     if ($pdo) return $pdo;
 
-    $dir = __DIR__ . '/../data';
-    if (!is_dir($dir)) mkdir($dir, 0775, true);
+    // XAMPP defaults; override in data/mysql.php if your MySQL setup differs.
+    $config = [
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'database' => 'tapit',
+        'user' => 'root',
+        'password' => '',
+    ];
+    $localConfig = __DIR__ . '/../data/mysql.php';
+    if (is_file($localConfig)) {
+        $config = array_replace($config, require $localConfig);
+    }
 
-    $pdo = new PDO('sqlite:' . $dir . '/tagit.db');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $config['database'])) {
+        throw new RuntimeException('Invalid MySQL database name');
+    }
+    $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4";
+    $pdo = new PDO($dsn, $config['user'], $config['password'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
-        uid TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_at TEXT NOT NULL)");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS access_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        device_id TEXT,
-        uid TEXT,
-        name TEXT,
-        access TEXT,
-        created_at TEXT)");
+        uid VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+        name VARCHAR(40) NOT NULL,
+        created_at DATETIME NOT NULL,
+        balance DECIMAL(12,2) NOT NULL DEFAULT 0.00
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Migration: add balance column if missing
-    $cols = $pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_COLUMN, 1);
-    if (!in_array('balance', $cols, true)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN balance REAL NOT NULL DEFAULT 0");
-    }
-    $logCols = $pdo->query("PRAGMA table_info(access_logs)")->fetchAll(PDO::FETCH_COLUMN, 1);
-    if (!in_array('balance', $logCols, true)) {
-        $pdo->exec("ALTER TABLE access_logs ADD COLUMN balance REAL NOT NULL DEFAULT 0");
-    }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS access_logs (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        device_id VARCHAR(40),
+        uid VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin,
+        name VARCHAR(40),
+        access VARCHAR(10) NOT NULL,
+        balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        created_at DATETIME NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT NOT NULL,
-        name TEXT,
-        type TEXT NOT NULL,
-        amount REAL NOT NULL,
-        balance_after REAL NOT NULL,
-        created_at TEXT NOT NULL)");
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        uid VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+        name VARCHAR(40),
+        type VARCHAR(20) NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        balance_after DECIMAL(12,2) NOT NULL,
+        created_at DATETIME NOT NULL,
+        INDEX transactions_uid_id (uid, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS pending_orders (
+        id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+        total DECIMAL(12,2) NOT NULL,
+        qty INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     return $pdo;
 }
 

@@ -17,7 +17,7 @@ if ($method === 'POST') {
         json_out(['error' => 'Valid UID (HEX) and name are required'], 400);
     }
     $stmt = $pdo->prepare('INSERT INTO users (uid, name, created_at, balance) VALUES (?, ?, ?, 0)
-                           ON CONFLICT(uid) DO UPDATE SET name = excluded.name');
+                           ON DUPLICATE KEY UPDATE name = VALUES(name)');
     $stmt->execute([$uid, substr($name, 0, 40), date('Y-m-d H:i:s')]);
     json_out(['message' => 'Card registered']);
 }

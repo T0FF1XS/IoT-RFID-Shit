@@ -28,22 +28,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         json_out(['error' => 'Valid uid, positive amount, and type (load|purchase) required'], 400);
     }
 
-    $stmt = $pdo->prepare('SELECT name, balance FROM users WHERE uid = ?');
-    $stmt->execute([$uid]);
-    $user = $stmt->fetch();
-    if (!$user) json_out(['error' => 'Card not registered'], 404);
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT name, balance FROM users WHERE uid = ? FOR UPDATE');
+        $stmt->execute([$uid]);
+        $user = $stmt->fetch();
+        if (!$user) {
+            $pdo->rollBack();
+            json_out(['error' => 'Card not registered'], 404);
+        }
 
-    $newBalance = $type === 'load'
-        ? (float)$user['balance'] + $amount
-        : (float)$user['balance'] - $amount;
+        $newBalance = $type === 'load'
+            ? (float)$user['balance'] + $amount
+            : (float)$user['balance'] - $amount;
 
-    if ($newBalance < 0) {
-        json_out(['error' => 'Insufficient balance', 'balance' => (float)$user['balance']], 400);
+        if ($newBalance < 0) {
+            $pdo->rollBack();
+            json_out(['error' => 'Insufficient balance', 'balance' => (float)$user['balance']], 400);
+        }
+
+        $pdo->prepare('UPDATE users SET balance = ? WHERE uid = ?')->execute([$newBalance, $uid]);
+        $pdo->prepare('INSERT INTO transactions (uid, name, type, amount, balance_after, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$uid, $user['name'], $type, $amount, $newBalance, date('Y-m-d H:i:s')]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
     }
-
-    $pdo->prepare('UPDATE users SET balance = ? WHERE uid = ?')->execute([$newBalance, $uid]);
-    $pdo->prepare('INSERT INTO transactions (uid, name, type, amount, balance_after, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-        ->execute([$uid, $user['name'], $type, $amount, $newBalance, date('Y-m-d H:i:s')]);
 
     json_out(['message' => ucfirst($type) . ' OK', 'balance' => $newBalance, 'name' => $user['name']]);
 }

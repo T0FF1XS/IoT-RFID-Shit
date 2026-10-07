@@ -1,11 +1,12 @@
 <?php
-// Stores the order waiting to be paid (single-kiosk, single pending order)
+// Stores the order waiting to be paid (single-kiosk, single pending order).
 require __DIR__ . '/db.php';
 
-$file = __DIR__ . '/../data/pending.json';
+$pdo = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    json_out(file_exists($file) ? json_decode(file_get_contents($file), true) : null);
+    $order = $pdo->query('SELECT total, qty, created_at FROM pending_orders WHERE id = 1')->fetch();
+    json_out($order ?: null);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -13,12 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total = is_array($data) ? (float)($data['total'] ?? 0) : 0;
     $qty = is_array($data) ? (int)($data['qty'] ?? 0) : 0;
     if ($total <= 0 || $qty <= 0) json_out(['error' => 'total and qty required'], 400);
-    file_put_contents($file, json_encode(['total' => $total, 'qty' => $qty, 'created_at' => date('Y-m-d H:i:s')]));
+    $stmt = $pdo->prepare('INSERT INTO pending_orders (id, total, qty, created_at) VALUES (1, ?, ?, ?)
+                           ON DUPLICATE KEY UPDATE total = VALUES(total), qty = VALUES(qty), created_at = VALUES(created_at)');
+    $stmt->execute([$total, $qty, date('Y-m-d H:i:s')]);
     json_out(['message' => 'Pending order saved']);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    if (file_exists($file)) unlink($file);
+    $pdo->exec('DELETE FROM pending_orders WHERE id = 1');
     json_out(['message' => 'Cleared']);
 }
 

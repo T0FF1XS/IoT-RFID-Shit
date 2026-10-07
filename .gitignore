@@ -4,7 +4,9 @@
 .vscode/launch.json
 .vscode/ipch
 
-# Runtime files; keep data/.htaccess in the repository.
+# Local credentials and legacy SQLite backup; keep data/.htaccess in the repository.
+data/mysql.php
+data/tagit.db
 data/pending.json
 data/*.db-journal
 data/*.db-shm
