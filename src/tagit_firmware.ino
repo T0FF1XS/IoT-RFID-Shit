@@ -143,13 +143,13 @@ void setup() {
     while (true) delay(1000);
   }
   display.setTextColor(SSD1306_WHITE);
-  showMessage("TagIt!", "Starting...");
+  showMessage("TapIt!", "Starting...");
 
   SPI.begin();
   rfid.PCD_Init();
-  Serial.println("[SYSTEM] TagIt! RFID Reader Ready");
+  Serial.println("[SYSTEM] TapIt! RFID Reader Ready");
 
-  showMessage("TagIt!", "Connecting Wi-Fi...");
+  showMessage("TapIt!", "Connecting Wi-Fi...");
   WiFi.begin(ssid, password);
   Serial.print("Connecting to Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {

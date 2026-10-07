@@ -3,3 +3,9 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Runtime files; keep data/.htaccess in the repository.
+data/pending.json
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
