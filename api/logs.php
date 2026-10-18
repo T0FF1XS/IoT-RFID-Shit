@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 
 $limit = max(1, min(100, (int)($_GET['limit'] ?? 20)));
 
-$rows = $pdo->query("SELECT id, device_id, uid, name, access, balance, created_at
+$rows = $pdo->query("SELECT id, device_id, uid, name, access, charged, balance, created_at
                      FROM access_logs ORDER BY id DESC LIMIT $limit")->fetchAll();
 
 $stats = $pdo->query("SELECT

@@ -14,9 +14,16 @@ body { margin: 0; min-height: 100vh; font-family: 'Segoe UI', system-ui, sans-se
 .k-status { padding: 5px 14px; border-radius: 999px; font-size: .8rem; background: rgba(255,255,255,.2); }
 .k-status.online::before { content: "● "; color: #bbf7d0; }
 .k-status.offline::before { content: "● "; color: #fecaca; }
+.k-page-link { padding: 8px 14px; border-radius: 8px; background: #fff; color: var(--brand-dark);
+  font-size: .9rem; font-weight: 700; text-decoration: none; }
+.k-page-link:hover { background: #e0f2fe; }
 .k-layout { flex: 1; display: grid; grid-template-columns: 320px 1fr; gap: 20px;
   max-width: 1200px; width: 100%; margin: 0 auto; padding: 20px; align-items: start; }
-@media (max-width: 800px) { .k-layout { grid-template-columns: 1fr; } }
+@media (max-width: 800px) {
+  .k-topbar { flex-wrap: wrap; gap: 10px; }
+  .k-topbar h1 { flex: 1 1 100%; }
+  .k-layout { grid-template-columns: 1fr; }
+}
 .k-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; }
 .k-stage { background: var(--panel); border-radius: 18px; padding: 22px; text-align: center;
   border: 3px dashed #67e8f9; transition: border-color .3s; }

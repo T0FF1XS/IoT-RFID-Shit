@@ -42,9 +42,14 @@ function db(): PDO {
         uid VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin,
         name VARCHAR(40),
         access VARCHAR(10) NOT NULL,
+        charged TINYINT(1) NOT NULL DEFAULT 0,
         balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
         created_at DATETIME NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    if (!$pdo->query("SHOW COLUMNS FROM access_logs LIKE 'charged'")->fetch()) {
+        $pdo->exec('ALTER TABLE access_logs ADD COLUMN charged TINYINT(1) NOT NULL DEFAULT 0 AFTER access');
+    }
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS transactions (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

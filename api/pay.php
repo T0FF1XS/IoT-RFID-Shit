@@ -18,8 +18,14 @@ $pdo = db();
 $pdo->beginTransaction();
 try {
     // Lock the single pending order so two taps cannot pay for it twice.
-    $pending = $pdo->query('SELECT total FROM pending_orders WHERE id = 1 FOR UPDATE')->fetch();
-    $hasPending = $pending && (float)$pending['total'] > 0;
+    $pending = $pdo->query('SELECT total, created_at FROM pending_orders WHERE id = 1 FOR UPDATE')->fetch();
+    $pendingCreatedAt = $pending ? strtotime((string)$pending['created_at']) : false;
+    $pendingAge = $pendingCreatedAt === false ? null : time() - $pendingCreatedAt;
+    $hasPending = $pending && (float)$pending['total'] > 0
+        && $pendingAge !== null && $pendingAge >= 0 && $pendingAge <= 30;
+    if ($pending && !$hasPending) {
+        $pdo->exec('DELETE FROM pending_orders WHERE id = 1');
+    }
 
     $stmt = $pdo->prepare('SELECT name, balance FROM users WHERE uid = ? FOR UPDATE');
     $stmt->execute([$uid]);
@@ -29,6 +35,7 @@ try {
     $name = $user ? $user['name'] : 'Unknown';
     $balance = $user ? (float)$user['balance'] : 0;
     $error = null;
+    $charged = false;
 
     if ($hasPending) {
         $total = (float)$pending['total'];
@@ -42,15 +49,16 @@ try {
             $pdo->prepare('INSERT INTO transactions (uid, name, type, amount, balance_after, created_at) VALUES (?, ?, ?, ?, ?, ?)')
                 ->execute([$uid, $user['name'], 'purchase', $total, $balance, date('Y-m-d H:i:s')]);
             $access = 'granted';
-            $pdo->exec('DELETE FROM pending_orders WHERE id = 1');
+            $charged = true;
         }
+        $pdo->exec('DELETE FROM pending_orders WHERE id = 1');
     } else {
         if ($user) { $access = 'granted'; } else { $error = 'Card not registered'; }
     }
 
-    $log = $pdo->prepare('INSERT INTO access_logs (device_id, uid, name, access, balance, created_at)
-                          VALUES (?, ?, ?, ?, ?, ?)');
-    $log->execute([$deviceId, $uid, $name, $access, $balance, date('Y-m-d H:i:s')]);
+    $log = $pdo->prepare('INSERT INTO access_logs (device_id, uid, name, access, charged, balance, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $log->execute([$deviceId, $uid, $name, $access, $charged, $balance, date('Y-m-d H:i:s')]);
     $pdo->commit();
 } catch (Throwable $e) {
     $pdo->rollBack();
@@ -58,4 +66,4 @@ try {
 }
 
 json_out(['access' => $access, 'name' => $name, 'balance' => $balance,
-          'error' => $error, 'charged' => $hasPending && $access === 'granted']);
+          'error' => $error, 'charged' => $charged]);

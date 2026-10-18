@@ -89,13 +89,27 @@ $('kMenu').addEventListener('click', e => {
   idleTimer = setTimeout(resetStage, 20000);
 });
 
-$('kCheckout').addEventListener('click', () => {
-  if (!cart.length) return;
+$('kCheckout').addEventListener('click', async () => {
+  if (!cart.length || pendingOrder) return;
   const total = cart.reduce((s, m) => s + m.price, 0);
-  pendingOrder = { qty: cart.length, total };
-  fetch(API + 'pending.php', { method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(pendingOrder) });
+  const order = { qty: cart.length, total };
+  const checkout = $('kCheckout');
+  checkout.disabled = true;
+  try {
+    const response = await fetch(API + 'pending.php', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not save order');
+    pendingOrder = order;
+  } catch (err) {
+    $('kStage').className = 'k-stage denied';
+    $('kIcon').textContent = '✕';
+    $('kTitle').textContent = 'ORDER NOT SAVED';
+    $('kSub').textContent = err instanceof Error ? err.message : 'Could not save order';
+    checkout.disabled = false;
+    return;
+  }
   currentCard = null;
   renderMenu();
   const stage = $('kStage');
@@ -105,6 +119,7 @@ $('kCheckout').addEventListener('click', () => {
   $('kSub').textContent = `Total: ${total} pts for ${pendingOrder.qty} item(s) — waiting for payment tap`;
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => { pendingOrder = null; cart = []; renderCartBar(); resetStage(); }, 30000);
+  checkout.disabled = false;
 });
 
 $('kClear').addEventListener('click', () => {
@@ -116,7 +131,8 @@ $('kClear').addEventListener('click', () => {
 async function payOrder(log) {
   const stage = $('kStage');
   const icon = $('kIcon');
-  if (log.access === 'granted') {
+  const charged = log.charged === true || Number(log.charged) === 1;
+  if (charged) {
     stage.className = 'k-stage granted';
     icon.textContent = '✓';
     $('kTitle').textContent = `Paid! Thanks, ${log.name}`;
@@ -125,11 +141,12 @@ async function payOrder(log) {
   } else {
     stage.className = 'k-stage denied';
     icon.textContent = '✕';
-    $('kTitle').textContent = 'PAYMENT FAILED';
-    $('kSub').textContent = `UID ${log.uid} • Insufficient balance or unregistered card`;
+    $('kTitle').textContent = log.access === 'denied' ? 'PAYMENT FAILED' : 'PAYMENT NOT PROCESSED';
+    $('kSub').textContent = log.access === 'denied'
+      ? `UID ${log.uid} • Insufficient balance or unregistered card`
+      : 'No charge was recorded. Please place the order again.';
   }
   pendingOrder = null;
-  fetch(API + 'pending.php', { method: 'DELETE' });
   void icon.offsetWidth; icon.classList.add('pop');
   clearTimeout(idleTimer);
   idleTimer = setTimeout(resetStage, 6000);
